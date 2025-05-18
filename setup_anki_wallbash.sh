@@ -117,7 +117,7 @@ fi
 # Create or overwrite anki.dcol with minimal JSON
 echo "Creating or overwriting $ANKI_DCOL..."
 cat > "$ANKI_DCOL" << 'EOF'
-/home/kot/.local/share/Anki2/addons21/688199788/themes/wallbash.json|${WALLBASH_SCRIPTS}/anki.sh
+/home/$USER/.local/share/Anki2/addons21/688199788/themes/wallbash.json|${WALLBASH_SCRIPTS}/anki.sh
 {
     "colors": {
         "CANVAS": ["Background", "#<wallbash_pry1>", "#<wallbash_pry1>", ["--canvas", "--bs-body-bg"]],
@@ -241,12 +241,6 @@ if ! command -v sqlite3 >/dev/null 2>&1; then
 fi
 
 echo "Setup complete! Please follow these steps to test:"
-echo "1. Restart Anki and verify no error popup appears."
-echo "2. Check prefs21.db for theme setting:"
-echo "   sqlite3 \"$PREFS_DB\" \"SELECT * FROM prefs WHERE key = 'add-ons';\""
-echo "3. Run ~/.config/hyde/scripts/swwwallbash.sh /path/to/wallpaper.png to update wallbash.json."
-echo "4. Open Anki, verify the UI updates to new colors without reselection."
-echo "5. Change wallpaper again and confirm UI updates automatically."
-echo "To remove all changes and restore Anki to a fresh state, run:"
-echo "   ./setup_anki_wallbash.sh -remove"
-echo "If issues occur, share ~/.cache/hyde/wallbash/anki-wallbash.log, meta.json, and prefs21.db output."
+echo "To test make sure to reload wallbash/change wallpapers"
+echo "Run anki and verify changes"
+echo "To remove all changes: $0 -remove"
