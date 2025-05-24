@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 
 # Script to set up Anki theming with Wallbash using ReColor add-on
-# Creates or overwrites anki.dcol and anki.sh, patches colors.py, and generates wallbash.json
+# Creates anki.dcol and anki.sh, patches colors.py, and generates wallbash.json
 # Run with -remove to revert all changes, restoring Anki to a fresh state
 
-# Exit on error
 set -e
 
-# Define paths
 WALLBASH_ALWAYS_DIR="$HOME/.config/hyde/wallbash/always"
 WALLBASH_SCRIPTS_DIR="$HOME/.config/hyde/wallbash/scripts"
 ANKI_DCOL="$WALLBASH_ALWAYS_DIR/anki.dcol"
@@ -22,11 +20,9 @@ COLORS_PY="$RECOLOR_DIR/colors.py"
 COLORS_PY_BAK="$COLORS_PY.bak"
 CACHE_DIR="$HOME/.cache/hyde/wallbash"
 
-# Function to remove all changes
 remove_changes() {
   echo "Removing all changes made by the script..."
 
-  # Delete created files
   for file in "$ANKI_DCOL" "$ANKI_SH" "$RECOLOR_JSON"; do
     if [[ -f "$file" ]]; then
       rm "$file"
@@ -36,15 +32,6 @@ remove_changes() {
     fi
   done
 
-  # Clean up cache directory
-  if [[ -d "$CACHE_DIR" ]]; then
-    rm -rf "$CACHE_DIR"
-    echo "Removed cache directory: $CACHE_DIR"
-  else
-    echo "Cache directory not found, skipping: $CACHE_DIR"
-  fi
-
-  # Revert colors.py patch
   if [[ -f "$COLORS_PY_BAK" ]]; then
     mv "$COLORS_PY_BAK" "$COLORS_PY"
     echo "Restored original $COLORS_PY from backup"
@@ -52,7 +39,6 @@ remove_changes() {
     echo "Backup $COLORS_PY_BAK not found, skipping"
   fi
 
-  # Revert meta.json to default (using config.json)
   if [[ -f "$META_JSON" ]] && [[ -f "$RECOLOR_DIR/config.json" ]] && command -v jq >/dev/null 2>&1; then
     cp "$META_JSON" "${META_JSON}.bak-$(date +%Y%m%d-%H%M%S)"
     echo "Backed up $META_JSON"
@@ -64,7 +50,6 @@ remove_changes() {
     echo "Warning: Cannot reset $META_JSON (missing file or jq)"
   fi
 
-  # Remove wallbash theme from prefs21.db
   if [[ -f "$PREFS_DB" ]] && command -v sqlite3 >/dev/null 2>&1; then
     cp "$PREFS_DB" "${PREFS_DB}.bak-$(date +%Y%m%d-%H%M%S)"
     echo "Backed up $PREFS_DB"
@@ -79,31 +64,19 @@ remove_changes() {
   exit 0
 }
 
-# Check for -remove option
 if [[ "$1" == "-remove" ]]; then
   remove_changes
 fi
 
-# Check if running as root
 if [[ $EUID -eq 0 ]]; then
   echo "This script should not be run as root."
   exit 1
 fi
 
-# Create directories if they don't exist
-mkdir -p "$WALLBASH_ALWAYS_DIR"
-mkdir -p "$WALLBASH_SCRIPTS_DIR"
-mkdir -p "$RECOLOR_THEME_DIR"
-mkdir -p "$CACHE_DIR"
-
-# Patch colors.py to fix KeyError
 echo "Patching $COLORS_PY to handle KeyError for BUTTON_HOVER..."
 if [[ -f "$COLORS_PY" ]]; then
-  # Backup original colors.py
   cp "$COLORS_PY" "$COLORS_PY_BAK"
-  # Remove problematic replace_color call
   sed -i '/replace_color(color_entries, "BUTTON_GRADIENT_END", "BUTTON_HOVER")/d' "$COLORS_PY"
-  # Enhance error handling in replace_color
   sed -i '/def replace_color(color_entries, anki_name, addon_name=None):/a\
     if addon_name and addon_name not in color_entries:\
         print(f"Warning: Color key {addon_name} not found in color_entries")\
@@ -114,8 +87,7 @@ else
   exit 1
 fi
 
-# Create or overwrite anki.dcol with minimal JSON
-echo "Creating or overwriting $ANKI_DCOL..."
+echo "Creating $ANKI_DCOL..."
 cat > "$ANKI_DCOL" << 'EOF'
 /home/$USER/.local/share/Anki2/addons21/688199788/themes/wallbash.json|${WALLBASH_SCRIPTS}/anki.sh
 {
@@ -135,7 +107,6 @@ cat > "$ANKI_DCOL" << 'EOF'
 }
 EOF
 
-# Create or overwrite anki.sh and make it executable
 echo "Creating or overwriting $ANKI_SH..."
 cat > "$ANKI_SH" << 'EOF'
 #!/usr/bin/env bash
@@ -202,13 +173,11 @@ fi
 EOF
 chmod +x "$ANKI_SH"
 
-# Verify file creation
 echo "Verifying created files..."
 ls -l "$ANKI_DCOL"
 ls -l "$ANKI_SH"
 ls -l "$COLORS_PY"
 
-# Check if themes directory is writable
 if [[ -w "$RECOLOR_THEME_DIR" ]]; then
   echo "Themes directory is writable: $RECOLOR_THEME_DIR"
 else
@@ -216,9 +185,7 @@ else
   chmod -R u+rw "$RECOLOR_THEME_DIR"
 fi
 
-# Check colors.conf
 if [[ -f "$COLORS_CONF" ]]; then
-  echo "colors.conf found, checking for required variables..."
   for var in wallbash_pry1 wallbash_txt1 wallbash_txt4; do
     if grep -q "$var" "$COLORS_CONF"; then
       echo "$var defined in colors.conf"
@@ -226,11 +193,8 @@ if [[ -f "$COLORS_CONF" ]]; then
       echo "Warning: $var not defined in colors.conf, may cause substitution issues"
     fi
   done
-else
-  echo "Error: colors.conf not found at $COLORS_CONF, Wallbash may not function"
 fi
 
-# Check dependencies
 if ! command -v jq >/dev/null 2>&1; then
   echo "Error: jq not installed, required for updating meta.json"
   echo "Install it with: sudo pacman -S jq"
